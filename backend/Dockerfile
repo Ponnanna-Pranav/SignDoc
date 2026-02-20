@@ -1,15 +1,21 @@
-# Use Maven image to build the project
-FROM maven:3.8.5-openjdk-17 AS build
+# ---------- Build Stage ----------
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+
 WORKDIR /app
+
 COPY pom.xml .
+RUN mvn dependency:go-offline
+
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Use JDK image to run the application
-FROM openjdk:17-jdk-slim
+# ---------- Run Stage ----------
+FROM eclipse-temurin:17-jdk
+
 WORKDIR /app
+
 COPY --from=build /app/target/*.jar app.jar
-# Create uploads directory
-RUN mkdir -p uploads
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+ENTRYPOINT ["java","-jar","app.jar"]
