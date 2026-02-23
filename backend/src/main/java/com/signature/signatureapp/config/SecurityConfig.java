@@ -53,34 +53,55 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http)
+            throws Exception {
 
         http
-                // ✅ ENABLE CORS FIRST
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // ✅ VERY IMPORTANT: allow OPTIONS
-                        .requestMatchers(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/**",
-                                "OPTIONS"))
-                        .permitAll()
-                        .requestMatchers(
-                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/auth/**"))
-                        .permitAll()
-                        .requestMatchers(
-                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/test/**"))
-                        .permitAll()
-                        .requestMatchers(
-                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/error"))
-                        .permitAll()
-                        .anyRequest().authenticated());
+            .cors(cors -> {})
+            .csrf(csrf -> csrf.disable())
+
+            .exceptionHandling(exception ->
+                exception.authenticationEntryPoint(unauthorizedHandler)
+            )
+
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(
+                    SessionCreationPolicy.STATELESS
+                )
+            )
+
+            .authorizeHttpRequests(auth -> auth
+
+                // Allow OPTIONS (CORS preflight)
+                .requestMatchers(
+                    new AntPathRequestMatcher("/**", "OPTIONS")
+                ).permitAll()
+
+                // ✅ VERY IMPORTANT: allow register & login
+                .requestMatchers(
+                    new AntPathRequestMatcher("/api/auth/**")
+                ).permitAll()
+
+                // Optional test endpoints
+                .requestMatchers(
+                    new AntPathRequestMatcher("/api/test/**")
+                ).permitAll()
+
+                // Error endpoint
+                .requestMatchers(
+                    new AntPathRequestMatcher("/error")
+                ).permitAll()
+
+                // All others require auth
+                .anyRequest().authenticated()
+            );
 
         http.authenticationProvider(authenticationProvider());
 
-        http.addFilterBefore(authenticationJwtTokenFilter(),
-                UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(
+            authenticationJwtTokenFilter(),
+            UsernamePasswordAuthenticationFilter.class
+        );
 
         return http.build();
     }
